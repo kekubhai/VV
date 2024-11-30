@@ -1,7 +1,7 @@
 'use client';
 
-import Router from 'next/router';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
 
+
 const captionSchema = z.object({
   date: z.string().min(1, 'Date is required.'),
   vibe: z.string().min(1, 'Vibe is required.'),
@@ -26,16 +27,17 @@ const captionSchema = z.object({
 export default function GeneratePage() {
   const [date, setDate] = useState('');
   const [vibe, setVibe] = useState('');
-  const [wordLimit, setWordLimit] = useState([30]);
+  const [wordLimit, setWordLimit] = useState(30); // Single numeric value
   const [isLoading, setIsLoading] = useState(false);
+  const [caption, setCaption] = useState(''); // For generated captions
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleGenerate = async () => {
-    
     const validation = captionSchema.safeParse({
       date,
       vibe,
-      wordLimit: wordLimit[0],
+      wordLimit,
     });
 
     if (!validation.success) {
@@ -49,11 +51,24 @@ export default function GeneratePage() {
 
     setIsLoading(true);
     try {
-      Router.push(`/results?date=${date}&vibe=${vibe}&wordLimit=${wordLimit[0]}`);
+      const response = await fetch(
+        `/api/generate?date=${encodeURIComponent(date)}&vibe=${encodeURIComponent(
+          vibe
+        )}&wordLimit=${wordLimit}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch caption');
+      }
+
+      const data = await response.json();
+      setCaption(data.caption);
+
+      router.push(`/results?date=${date}&vibe=${vibe}&wordLimit=${wordLimit}`);
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to generate caption. Please try again.',
+        description: (error as Error).message || 'Failed to generate caption.',
         variant: 'destructive',
       });
     } finally {
@@ -97,8 +112,8 @@ export default function GeneratePage() {
             <div className="space-y-2">
               <Label>Word Limit: {wordLimit}</Label>
               <Slider
-                value={wordLimit}
-                onValueChange={setWordLimit}
+                value={[wordLimit]} // Wrap as an array
+                onValueChange={(value) => setWordLimit(value[0])}
                 min={10}
                 max={100}
                 step={5}
@@ -113,6 +128,13 @@ export default function GeneratePage() {
             >
               {isLoading ? 'Generating...' : 'Generate Caption'}
             </Button>
+
+            {caption && (
+              <div className="mt-6">
+                <h2 className="text-2xl font-bold">Generated Caption</h2>
+                <p className="text-lg font-semibold">{caption}</p>
+              </div>
+            )}
           </div>
         </Card>
       </div>

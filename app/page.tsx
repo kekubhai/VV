@@ -15,7 +15,7 @@ export default function Home() {
           <p className="text-xl text-muted-foreground mb-8">
             Create perfect Instagram captions for any holiday or occasion with AI
           </p>
-          <Link href="/generate">
+          <Link href="/pages/generate">
             <Button size="lg" className="animate-pulse">
               <SparklesIcon className="mr-2 h-5 w-5" />
               Generate Captions
